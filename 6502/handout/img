@@ -1,0 +1,205 @@
+#!/bin/bash
+#set -x
+# Copyright (C) 2011 by Jonathan Appavoo, Boston University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+typeset -r IMGSIZE=65536
+typeset -r NMIVECOFF=0xFFFA
+typeset -r RESETVECOFF=0xFFFC
+typeset -r IRQVECOFF=0xFFFE
+
+function create
+{
+   file=$1
+
+   if [[ $file = '-h' ]]; then
+      echo "USAGE: create [file]"
+      echo "   creates an empty image if no file is specified it"
+      echo "   will be written to standard out. "
+      echo "   eg. ./img create foo.img"
+      echo "   will create a new empty 6502 memory image file filled with"
+      echo "   0 byte values"
+      return -1
+   fi
+
+   if [[ -z $file ]]; then file=/dev/stdout; fi
+
+   dd if=/dev/zero of=$file bs=1 count=$IMGSIZE 2>/dev/null
+ 
+   return 0
+}
+
+function load
+{
+   imgfile=$1   
+   offset=$(printf %d $2)
+
+   if [[ -z $imgfile || $imgfile = '-h' ]]; then
+     echo  "USAGE: load <imgfile> [offset]"
+     echo  "    loads ascii stream of hex numbers (2 hex digit pairs)"
+     echo  "    from standard in into image file at offset"
+     echo  "    default offset is 0"
+     echo  "    eg.  echo '01deadbeef' | ./img load foo.img"
+     echo  "    will load the first five bytes of the foo.img file with byte"
+     echo  "    values of 01deadbeef"
+     echo  "    and echo '01deadbeef' | ./img load foo.img 0x1000" 
+     echo  "    would load the same file values at offset 0x1000"
+     echo  "    NOTE you can use the dump command to confirm: "
+     echo  "       eg. img dump foo.img 0x1000 5"
+     return -1
+   fi
+
+   if [[ ! -a $imgfile ]]; then
+      create $imgfile
+   fi
+
+   if [[ -z $offset ]]; then
+     offset=0
+   fi
+     
+   perl -e 'print pack "H*",<STDIN>' | dd of=$imgfile bs=1 seek=$offset conv=notrunc 2>/dev/null
+
+   return 0
+}
+
+
+function dump
+{
+   file=$1
+   offset=$(printf %d $2)
+   len=$3
+
+   if [[ -z $file || $file = '-h' ]]; then
+      echo "USAGE: dump <file> [offset] [len]"
+      echo "   produces an ascii dump of the contents of an image file"
+      echo "   if offset is specified then dump will start at offset (default is 0)"
+      echo "   if len is specified then only len bytes will be dumped (default is to the end of file)"
+      return -1
+   fi
+
+   if [[ ! -a $file ]]; then 
+       echo "ERROR: must specify file"
+       return -1
+   fi
+   
+   if [[ -z $offset ]]; then offset=0; fi
+  
+   if [[ -n $len ]]; then len="-n $len"; fi
+
+   hexdump -C -s $offset $len $file
+    
+   return 0
+}
+
+setvec()
+{
+  addr=$1
+  file=$2
+  value=$3
+
+
+
+  if [[ -z $value ]]; then
+    dump $file $addr 2
+  else
+    ll=${value##0x??}
+    hh=${value%%??}
+    hh=${hh##0x}
+    echo -n "${ll}${hh}" | load $file $addr
+   fi 
+   return 0
+}
+
+function resetvec
+{
+  file=$1
+  value=$2
+
+  if [[ -z $file || $file = '-h' ]]; then
+     echo "ERROR: must specify image file"
+     echo "USAGE:  resetvec <file> [0xHHLL]"
+     echo "   dumps or sets the resetvector in the image file"
+     echo "   value must be specified as a 0x prefixed hex value with HH the page address and LL the offset"
+     return -1
+  fi
+  
+  setvec $RESETVECOFF $file $value 
+  return $?
+}
+
+function nmivec
+{
+  file=$1
+  value=$2
+
+  if [[ -z $file || $file = '-h' ]]; then
+     echo "ERROR: must specify image file"
+     echo "USAGE:  nmivec <file> [0xHHLL]"
+     echo "   dumps or sets the resetvector in the image file"
+     echo "   value must be specified as a 0x prefixed hex value with HH the page address and LL the offset"
+     return -1
+  fi
+  
+  setvec $NMIVECOFF $file $value 
+  return 0
+}
+
+function irqvec
+{
+  file=$1
+  value=$2
+
+  if [[ -z $file || $file = '-h' ]]; then
+     echo "ERROR: must specify image file"
+     echo "USAGE:  irqvec <file> [0xHHLL]"
+     echo "   dumps or sets the resetvector in the image file"
+     echo "   value must be specified as a 0x prefixed hex value with HH the page address and LL the offset"
+     return -1
+  fi
+  
+  setvec $IRQVECOFF $file $value 
+  return 0
+}
+
+usage()
+{
+    echo "USAGE:  ${0##*/} func args" >&2
+    grep '^function' $0
+    echo "for each func use '-h' to print its usage: eg. ${0##*/} dump -h"
+    echo "will print the usage for the dump command"
+}
+
+processargs()
+{
+  if [[ $# == 0 || $1 = '-h' ]]
+  then
+    usage
+    exit -1
+  fi
+
+  dofunc=$1
+}
+
+processargs "$@"
+shift
+
+$dofunc "$@"
+
+exit $?

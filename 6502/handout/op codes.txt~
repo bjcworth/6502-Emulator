@@ -1,0 +1,10 @@
+89 -HH
+cd -LL (CMP | ABS)
+e6 - INC | ZPAGE,X
+9e - EMPTY
+d1 - SBC | IND,Y
+d8 - CLD
+9c - EMPTY
+de - DEC | ABS,X
+69 - ADC | IMM
+ed - SBC | AMS

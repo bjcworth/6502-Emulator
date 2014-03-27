@@ -1,0 +1,20 @@
+You will need this documentation to complete this lab.  
+Spend a little while getting familar with it and how to read and interpret
+the descriptions of the operation of the 6502 instructions so that you
+can implement the correctly.
+
+mcs6500_family_programming_manual.pdf:
+    MOS 6502 programmers Manual from 
+    http://archive.6502.org/books/mcs6500_family_hardware_manual.pdf
+    again an html version with links can be found here:
+        http://users.telenet.be/kim1-6502/
+
+6502_A_4_gsX_.pdf : 
+     6502 wall chart from http://ericclever.com/6500/
+
+mcs6500_family_hardware_manual.pdf : 
+    MOS 6502 hardware Manual from 
+    http://archive.6502.org/books/mcs6500_family_programming_manual.pdf
+    an html version with links can be found here:
+        http://users.telenet.be/kim1-6502/
+

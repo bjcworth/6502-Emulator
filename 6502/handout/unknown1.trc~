@@ -1,0 +1,8 @@
+inst_LSR: NYI
+op=0x4a am=0x606338 
+(mode=1, func=0x401034, A: Accumulator A)
+srbits=0x00, instfunc=0x402272, ins=0x6074b8
+(inst=33, LSR, logical shift right)
+ac: 0x00 y: 0x00 x: 0x00 pc: 0x14,0x61, sp: 0xf8
+sr: 0x16: N=0 V=0 B=1 D=0 I=1 Z=1 C=0
+6502: instruction.c:549: inst_LSR: Assertion `0' failed.
